@@ -64,5 +64,4 @@ func TestParceLocationString(t *testing.T) {
 			t.Errorf(format, name, tc.location, tc.lat, tc.lon, lat, lon)
 		}
 	}
-
 }

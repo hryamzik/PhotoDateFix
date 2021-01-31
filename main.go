@@ -176,15 +176,30 @@ func main() {
 	CheckErrorFatal(err)
 	log.Printf("Going to set timezone to GMT%s", offsetTime.Format("-07:00"))
 
-	err = filepath.Walk(*srcPathString, func(path string, f os.FileInfo, _ error) error {
+	srcPathInfo, err := os.Stat(*srcPathString)
+	CheckErrorFatal(err)
+
+	err = filepath.Walk(*srcPathString, func(path string, f os.FileInfo, err error) error {
+		// log.Printf("Checking %s, %s", *srcPathString, filepath.Join(*srcPathString, f.Name()))
+		if err != nil {
+			log.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+			return err
+		}
 		if !f.IsDir() {
 			if imageRegex.MatchString(f.Name()) {
 				src := filepath.Join(*srcPathString, f.Name())
 				dst := filepath.Join(*dstPathString, imageRegex.ReplaceAllString(f.Name(), fmt.Sprintf(`${1}%s.${2}`, *nameSuffix)))
 				processFile(src, dst, *delta, "", setGPS, lat, lon, offsetTime.Location())
+			} else {
+				log.Printf("Skipping %s", f.Name())
 			}
 		}
-		return filepath.SkipDir
+
+		if f.IsDir() && !os.SameFile(srcPathInfo, f) {
+			log.Printf("skipping a dir without errors: %+v \n", f.Name())
+			return filepath.SkipDir
+		}
+		return nil
 	})
 	CheckErrorFatal(err)
 }
